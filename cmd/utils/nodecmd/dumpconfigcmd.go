@@ -401,6 +401,10 @@ func MakeFullNode(ctx *cli.Context) *node.Node {
 	chaindataFetcherConfig := makeChainDataFetcherConfig(ctx)
 	utils.RegisterChainDataFetcherService(stack, &chaindataFetcherConfig)
 
+	if ctx.GlobalIsSet(utils.TokenHistoryEnableFlag.Name) {
+		utils.RegisterTokenHistoryService(stack)
+	}
+
 	return stack
 }
 

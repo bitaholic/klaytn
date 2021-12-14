@@ -123,6 +123,7 @@ const (
 	ChainDataFetcher
 	KAS
 	FORK
+	TokenHistory
 
 	// ModuleNameLen should be placed at the end of the list.
 	ModuleNameLen

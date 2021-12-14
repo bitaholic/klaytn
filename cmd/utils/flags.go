@@ -23,6 +23,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/klaytn/klaytn/tokenhistory"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -1022,6 +1023,10 @@ var (
 			"Should set the same value within the network",
 		Value: params.DefaultOpcodeComputationCostLimit,
 	}
+	TokenHistoryEnableFlag = cli.BoolFlag{
+		Name:  "tokenhistory",
+		Usage: "Enable the TokenHistory Service",
+	}
 
 	// TODO-Klaytn-Bootnode: Add bootnode's metric options
 	// TODO-Klaytn-Bootnode: Implements bootnode's RPC
@@ -1705,6 +1710,12 @@ func RegisterDBSyncerService(stack *node.Node, cfg *dbsyncer.DBConfig) {
 		if err != nil {
 			log.Fatalf("Failed to register the service: %v", err)
 		}
+	}
+}
+
+func RegisterTokenHistoryService(stack *node.Node) {
+	if err := tokenhistory.New(stack); err != nil {
+		log.Fatalf("Failed to register the TokenHistory Service: %v", err)
 	}
 }
 

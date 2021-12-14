@@ -294,6 +294,12 @@ var FlagGroups = []FlagGroup{
 		},
 	},
 	{
+		Name: "TOKEN HISTORY",
+		Flags: []cli.Flag{
+			TokenHistoryEnableFlag,
+		},
+	},
+	{
 		Name: "MISC",
 		Flags: []cli.Flag{
 			GenKeyFlag,

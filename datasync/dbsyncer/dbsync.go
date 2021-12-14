@@ -180,6 +180,7 @@ func (ds *DBSyncer) SetComponents(components []interface{}) {
 				ds.chainSub = ds.blockchain.SubscribeChainEvent(ds.chainCh)
 				// eventMode == "head"
 			} else if ds.eventMode == HEAD_MODE {
+			} else if ds.eventMode == HEAD_MODE {
 				// handle last block when many blocks create
 				ds.chainHeadCh = make(chan blockchain.ChainHeadEvent, ds.cfg.BlockChannelSize)
 				ds.chainSub = ds.blockchain.SubscribeChainHeadEvent(ds.chainHeadCh)

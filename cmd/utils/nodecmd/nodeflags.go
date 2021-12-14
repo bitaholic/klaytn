@@ -324,3 +324,7 @@ var DBMigrationFlags = []cli.Flag{
 	utils.DstDynamoDBReadCapacityFlag,
 	utils.DstDynamoDBWriteCapacityFlag,
 }
+
+var TokenHistoryFlags = []cli.Flag{
+	utils.TokenHistoryEnableFlag,
+}
