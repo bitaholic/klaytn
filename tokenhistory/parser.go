@@ -26,6 +26,100 @@ type TokenTransaction struct {
 	TokenContract *common.Address
 }
 
+type KlayTransfer struct {
+	BlockNumber   uint64
+	TxIdx         uint64
+	InternalTxIdx uint64
+	Account       *common.Address
+	Opposite      *common.Address
+	Value         *big.Int
+	Direction     string // from or to
+	TxHash        *common.Hash
+	Balance       *big.Int
+}
+
+type KlayTransferMap map[common.Address][]KlayTransfer
+
+func (m KlayTransferMap) Add(t KlayTransfer) {
+	m[*t.Account] = append(m[*t.Account], t)
+}
+
+func (m KlayTransferMap) AddAll(ts []KlayTransfer) {
+	for _, t := range ts {
+		m.Add(t)
+	}
+}
+
+func (m KlayTransferMap) FillBalance() {
+	for _, ts := range m {
+		for i := len(ts) - 2; i >= 0; i-- {
+			v := new(big.Int)
+			if ts[i].Direction == "->(to)" { // Send
+				ts[i].Balance = v.Add(ts[i+1].Balance, ts[i].Value)
+			} else if ts[i].Direction == "<-(from)" { // Receive
+				ts[i].Balance = v.Sub(ts[i+1].Balance, ts[i].Value)
+			} else {
+
+			}
+		}
+	}
+}
+
+func (m KlayTransferMap) SetAccountLastBalance(account *common.Address, balance *big.Int) {
+	if ts, ok := m[*account]; ok && len(ts) > 0 {
+		ts[len(ts)-1].Balance = balance
+	}
+}
+
+func parseBlock2(msg blockchain.ChainEvent) KlayTransferMap {
+	var ret = make(KlayTransferMap)
+
+	blockNumber := msg.Block.NumberU64() // uint64 최고값을 넘어가면?
+	for txIdx, tx := range msg.Block.Transactions() {
+		var from common.Address
+		if tx.IsLegacyTransaction() {
+			signer := types.NewEIP155Signer(tx.ChainId())
+			from, _ = types.Sender(signer, tx)
+		} else {
+			from, _ = tx.From()
+		}
+		to := tx.To()
+		value := tx.Value()
+		hash := tx.Hash()
+		// 제외해야 할 Transactions
+		// * Status 가 OK 가 아닐 경우
+		// * Deploy Contract
+		// * 0 Value 전달
+		//logger.Info("transaction", "blockNumber", blockNumber, "txIdx", uint64(txIdx),
+		//	"from", from, "to", to, "value", value, "hash", hash)
+
+		ret.Add(KlayTransfer{
+			BlockNumber:   blockNumber,
+			TxIdx:         uint64(txIdx),
+			InternalTxIdx: 0,
+			Account:       &from,
+			Opposite:      to,
+			Value:         value,
+			Direction:     "->(to)",
+			TxHash:        &hash,
+			Balance:       nil,
+		})
+		ret.Add(KlayTransfer{
+			BlockNumber:   blockNumber,
+			TxIdx:         uint64(txIdx),
+			InternalTxIdx: 0,
+			Account:       to,
+			Opposite:      &from,
+			Value:         value,
+			Direction:     "<-(from)",
+			TxHash:        &hash,
+			Balance:       nil,
+		})
+	}
+
+	return ret
+}
+
 func parseBlock(msg blockchain.ChainEvent) []TokenTransaction {
 	var ret []TokenTransaction
 
@@ -58,7 +152,7 @@ func parseBlock(msg blockchain.ChainEvent) []TokenTransaction {
 		})
 	}
 
-	printItx(msg.InternalTxTraces)
+	//printItx(msg.InternalTxTraces)
 	//for _, itx := range msg.InternalTxTraces {
 	//	logger.Info("---found internal tx", "itx", itx)
 	//	if itx.Reverted != nil {
@@ -77,31 +171,31 @@ func parseBlock(msg blockchain.ChainEvent) []TokenTransaction {
 	//})
 	//}
 
-	for logIdx, l := range msg.Logs {
-		if len(l.Topics) > 0 && l.Topics[0].String() == tokenTransferEventHash {
-			words, err := splitToWords(l.Data)
-			if err != nil {
-				logger.Error("failed to split data", "error", err)
-				continue
-			}
-			data := append(l.Topics, words...)
-			from := wordToAddress(data[1])
-			to := wordToAddress(data[2])
-			value := new(big.Int).SetBytes(data[3].Bytes())
-			logger.Info("transfer", "from", from, "to", to,
-				"value", value, "txIdx", l.TxIndex, "txHash", l.TxHash.Hex())
-			ret = append(ret, TokenTransaction{
-				BlockNumber:   blockNumber,
-				TxIdx:         uint64(l.TxIndex),
-				logIdx:        uint64(logIdx),
-				From:          &from,
-				To:            &to,
-				Value:         value,
-				Hash:          &l.TxHash,
-				TokenContract: &l.Address,
-			})
-		}
-	}
+	//for logIdx, l := range msg.Logs {
+	//	if len(l.Topics) > 0 && l.Topics[0].String() == tokenTransferEventHash {
+	//		words, err := splitToWords(l.Data)
+	//		if err != nil {
+	//			logger.Error("failed to split data", "error", err)
+	//			continue
+	//		}
+	//		data := append(l.Topics, words...)
+	//		from := wordToAddress(data[1])
+	//		to := wordToAddress(data[2])
+	//		value := new(big.Int).SetBytes(data[3].Bytes())
+	//		logger.Info("transfer", "from", from, "to", to,
+	//			"value", value, "txIdx", l.TxIndex, "txHash", l.TxHash.Hex())
+	//		ret = append(ret, TokenTransaction{
+	//			BlockNumber:   blockNumber,
+	//			TxIdx:         uint64(l.TxIndex),
+	//			logIdx:        uint64(logIdx),
+	//			From:          &from,
+	//			To:            &to,
+	//			Value:         value,
+	//			Hash:          &l.TxHash,
+	//			TokenContract: &l.Address,
+	//		})
+	//	}
+	//}
 	return ret
 }
 
