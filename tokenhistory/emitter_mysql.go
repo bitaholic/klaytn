@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
+	"github.com/klaytn/klaytn/common/hexutil"
 	"log"
 )
 
@@ -68,5 +69,29 @@ func (e *EmitterMysql) EmitMessage(msg TokenTransaction) {
 	)
 	if err != nil {
 		logger.Error("failed to insert row", "error", err)
+	}
+}
+
+func (e *EmitterMysql) EmitKlayTransfers(tm KlayTransferMap) {
+	for _, transfers := range tm {
+		q := fmt.Sprintf(
+			`INSERT INTO %s.klay_transfer_history
+				(account_addr, block_num, tx_idx, itx_idx, direction, opposite_addr, value, balance, tx_hash)
+                VALUES (?,?,?,?,?,?,?,?,?)`, e.databaseName)
+		for _, t := range transfers {
+			_, err := e.db.Exec(q,
+				t.Account.Bytes(),
+				t.BlockNumber,
+				t.TxIdx,
+				t.InternalTxIdx,
+				t.Direction,
+				t.Opposite.Bytes(),
+				hexutil.EncodeBig(t.Value),
+				hexutil.EncodeBig(t.Balance),
+				t.TxHash.Bytes())
+			if err != nil {
+				logger.Error("failed to insert klay transfer", "error", err)
+			}
+		}
 	}
 }

@@ -14,14 +14,16 @@ CREATE TABLE `token_history`
 
 CREATE TABLE `klay_transfer_history`
 (
-    `account_addr`  binary(20) NOT NULL,
-    `block_num`     int unsigned DEFAULT NULL,
-    `tx_idx`        int unsigned DEFAULT NULL,
-    `itx_idx`       int unsigned DEFAULT NULL,
-    `opposite_addr` binary(20)   DEFAULT NULL,
-    `value`         bigint       DEFAULT NULL,
-    `balance`       bigint       DEFAULT NULL,
-    `tx_hash`       binary(32)   DEFAULT NULL,
+    `account_addr`  binary(20)   NOT NULL,
+    `block_num`     int unsigned NOT NULL,
+    `tx_idx`        int unsigned NOT NULL,
+    `itx_idx`       int unsigned NOT NULL,
+    `opposite_addr` binary(20)  DEFAULT NULL,
+    `value`         varchar(80) DEFAULT NULL,
+    `balance`       varchar(80) DEFAULT NULL,
+    `tx_hash`       binary(32)   NOT NULL,
+    `direction`     tinyint(1)  DEFAULT NULL,
     KEY `token_history_from_addr_block_num_index` (`account_addr`, `block_num`, `tx_idx`, `itx_idx`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = ascii;
+

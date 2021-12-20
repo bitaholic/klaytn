@@ -92,9 +92,11 @@ func (b *TokenHistory) handleEvent() {
 			for addr, transfers := range klayTransferMap {
 				logger.Info("Transfer", "addr", addr.Hex())
 				for _, t := range transfers {
-					logger.Info("[" + t.Account.Hex() + "] " + t.Direction + " : " + t.Opposite.Hex() + " : " + t.Value.String() + " : Balance : " + t.Balance.String())
+					logger.Info("[" + t.Account.Hex() + "] " + string(t.Direction) + " : " + t.Opposite.Hex() + " : " + t.Value.String() + " : Balance : " + t.Balance.String())
 				}
 			}
+
+			b.emitter.EmitKlayTransfers(klayTransferMap)
 
 			//tokenTransactions := parseBlock(ev)
 			//for _, t := range tokenTransactions {

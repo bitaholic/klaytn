@@ -33,10 +33,17 @@ type KlayTransfer struct {
 	Account       *common.Address
 	Opposite      *common.Address
 	Value         *big.Int
-	Direction     string // from or to
+	Direction     Direction // from or to
 	TxHash        *common.Hash
 	Balance       *big.Int
 }
+
+type Direction int8
+
+const (
+	DirectionSend = iota
+	DirectionReceive
+)
 
 type KlayTransferMap map[common.Address][]KlayTransfer
 
@@ -54,12 +61,13 @@ func (m KlayTransferMap) FillBalance() {
 	for _, ts := range m {
 		for i := len(ts) - 2; i >= 0; i-- {
 			v := new(big.Int)
-			if ts[i].Direction == "->(to)" { // Send
+			switch ts[i].Direction {
+			case DirectionSend:
 				ts[i].Balance = v.Add(ts[i+1].Balance, ts[i].Value)
-			} else if ts[i].Direction == "<-(from)" { // Receive
+			case DirectionReceive:
 				ts[i].Balance = v.Sub(ts[i+1].Balance, ts[i].Value)
-			} else {
-
+			default:
+				logger.Error("Not Supported Directions", "direction", v)
 			}
 		}
 	}
@@ -100,7 +108,7 @@ func parseBlock2(msg blockchain.ChainEvent) KlayTransferMap {
 			Account:       &from,
 			Opposite:      to,
 			Value:         value,
-			Direction:     "->(to)",
+			Direction:     DirectionSend,
 			TxHash:        &hash,
 			Balance:       nil,
 		})
@@ -111,7 +119,7 @@ func parseBlock2(msg blockchain.ChainEvent) KlayTransferMap {
 			Account:       to,
 			Opposite:      &from,
 			Value:         value,
-			Direction:     "<-(from)",
+			Direction:     DirectionReceive,
 			TxHash:        &hash,
 			Balance:       nil,
 		})
