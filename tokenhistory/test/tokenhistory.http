@@ -1,0 +1,69 @@
+POST http://localhost:8661
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tokenhistory_listKlayTransfer",
+  "params": [
+    "0xD58565F90B7D22879EAD5736CAE93ACA4E03AD85",
+    "0x1",
+    "0x5F32D"
+  ],
+  "id": 1
+}
+
+###
+POST http://localhost:8661
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tokenhistory_listKlayTransfer",
+  "params": [
+    "0xD58565F90B7D22879EAD5736CAE93ACA4E03AD85",
+    "earliest",
+    "latest"
+  ],
+  "id": 1
+}
+
+###
+POST http://localhost:8661
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tokenhistory_listKlayTransfer",
+  "params": [
+    "0x62081a81db64d964c7fd952b435437824239759e",
+    "0xb476e6ff242256b98efe7192508fe3264f2cf27c43e7f25a8ffc4275cf29758f",
+    "0x8f7f6d77ee7d2cec3ad692945a47efc657c477940201f1976300af5a0ccedb00"
+  ],
+  "id": 1
+}
+
+###
+POST http://localhost:8661
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tokenhistory_latestKlayTransfers",
+  "params": [],
+  "id": 1
+}
+
+###
+POST http://localhost:8661
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tokenhistory_listAccountKlayTransferBetweenTime",
+  "params": [
+    "0x62081a81db64d964c7fd952b435437824239759e",
+    164007248,
+    1640072481
+  ],
+  "id": 1
+}

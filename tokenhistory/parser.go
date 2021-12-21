@@ -36,6 +36,21 @@ type KlayTransfer struct {
 	Direction     Direction // from or to
 	TxHash        *common.Hash
 	Balance       *big.Int
+	BlockTime     uint64
+}
+
+func NewKlayTransfer() *KlayTransfer {
+	return &KlayTransfer{
+		BlockNumber:   0,
+		TxIdx:         0,
+		InternalTxIdx: 0,
+		Account:       new(common.Address),
+		Opposite:      new(common.Address),
+		Value:         new(big.Int),
+		Direction:     0,
+		TxHash:        new(common.Hash),
+		Balance:       new(big.Int),
+	}
 }
 
 type Direction int8
@@ -83,6 +98,7 @@ func parseBlock2(msg blockchain.ChainEvent) KlayTransferMap {
 	var ret = make(KlayTransferMap)
 
 	blockNumber := msg.Block.NumberU64() // uint64 최고값을 넘어가면?
+	blockTime := msg.Block.Time().Uint64()
 	for txIdx, tx := range msg.Block.Transactions() {
 		var from common.Address
 		if tx.IsLegacyTransaction() {
@@ -111,6 +127,7 @@ func parseBlock2(msg blockchain.ChainEvent) KlayTransferMap {
 			Direction:     DirectionSend,
 			TxHash:        &hash,
 			Balance:       nil,
+			BlockTime:     blockTime,
 		})
 		ret.Add(KlayTransfer{
 			BlockNumber:   blockNumber,
@@ -122,6 +139,7 @@ func parseBlock2(msg blockchain.ChainEvent) KlayTransferMap {
 			Direction:     DirectionReceive,
 			TxHash:        &hash,
 			Balance:       nil,
+			BlockTime:     blockTime,
 		})
 	}
 

@@ -19,11 +19,13 @@ CREATE TABLE `klay_transfer_history`
     `tx_idx`        int unsigned NOT NULL,
     `itx_idx`       int unsigned NOT NULL,
     `opposite_addr` binary(20)  DEFAULT NULL,
-    `value`         varchar(80) DEFAULT NULL,
+    `tx_value`      varchar(80) DEFAULT NULL,
     `balance`       varchar(80) DEFAULT NULL,
     `tx_hash`       binary(32)   NOT NULL,
     `direction`     tinyint(1)  DEFAULT NULL,
-    KEY `token_history_from_addr_block_num_index` (`account_addr`, `block_num`, `tx_idx`, `itx_idx`)
+    `block_time`    int unsigned NOT NULL,
+    KEY `token_history_from_addr_block_num_index` (`account_addr`, `block_num`, `tx_idx`, `itx_idx`),
+    KEY `account_block_time_index` (`account_addr`, `block_time` DESC)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = ascii;
 

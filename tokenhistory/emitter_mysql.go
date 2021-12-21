@@ -3,9 +3,7 @@ package tokenhistory
 import (
 	"database/sql"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
 	"github.com/klaytn/klaytn/common/hexutil"
-	"log"
 )
 
 type EmitterMysql struct {
@@ -13,27 +11,7 @@ type EmitterMysql struct {
 	databaseName string
 }
 
-func NewEmitterMysql(dbUser, dbPasswd, dbAddr, dbName string) *EmitterMysql {
-	// Capture connection properties.
-	cfg := mysql.Config{
-		User:   dbUser,
-		Passwd: dbPasswd,
-		Net:    "tcp",
-		Addr:   dbAddr,
-		DBName: dbName,
-	}
-	// Get a database handle.
-	var err error
-	db, err := sql.Open("mysql", cfg.FormatDSN())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal(pingErr)
-	}
-	fmt.Println("Connected!")
+func NewEmitterMysql(db *sql.DB, dbName string) *EmitterMysql {
 	return &EmitterMysql{db: db, databaseName: dbName}
 }
 
@@ -76,8 +54,8 @@ func (e *EmitterMysql) EmitKlayTransfers(tm KlayTransferMap) {
 	for _, transfers := range tm {
 		q := fmt.Sprintf(
 			`INSERT INTO %s.klay_transfer_history
-				(account_addr, block_num, tx_idx, itx_idx, direction, opposite_addr, value, balance, tx_hash)
-                VALUES (?,?,?,?,?,?,?,?,?)`, e.databaseName)
+				(account_addr, block_num, tx_idx, itx_idx, direction, opposite_addr, tx_value, balance, tx_hash, block_time)
+                VALUES (?,?,?,?,?,?,?,?,?,?)`, e.databaseName)
 		for _, t := range transfers {
 			_, err := e.db.Exec(q,
 				t.Account.Bytes(),
@@ -88,7 +66,8 @@ func (e *EmitterMysql) EmitKlayTransfers(tm KlayTransferMap) {
 				t.Opposite.Bytes(),
 				hexutil.EncodeBig(t.Value),
 				hexutil.EncodeBig(t.Balance),
-				t.TxHash.Bytes())
+				t.TxHash.Bytes(),
+				t.BlockTime)
 			if err != nil {
 				logger.Error("failed to insert klay transfer", "error", err)
 			}

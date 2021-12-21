@@ -1,24 +1,55 @@
 package tokenhistory
 
 import (
+	"database/sql"
+	"fmt"
+	"github.com/go-sql-driver/mysql"
 	"github.com/klaytn/klaytn/blockchain"
 	"github.com/klaytn/klaytn/event"
-	"github.com/klaytn/klaytn/log"
+	klog "github.com/klaytn/klaytn/log"
 	"github.com/klaytn/klaytn/networks/p2p"
 	"github.com/klaytn/klaytn/networks/rpc"
 	"github.com/klaytn/klaytn/node"
+	"log"
 )
 
 var (
-	logger = log.NewModuleLogger(log.TokenHistory)
+	logger = klog.NewModuleLogger(klog.TokenHistory)
 )
 
+func NewDatabase(dbUser, dbPasswd, dbAddr, dbName string) *sql.DB {
+	// Capture connection properties.
+	cfg := mysql.Config{
+		User:   dbUser,
+		Passwd: dbPasswd,
+		Net:    "tcp",
+		Addr:   dbAddr,
+		DBName: dbName,
+	}
+	// Get a database handle.
+	var err error
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err) // TODO 다른 방식으로 처리
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
+	}
+	fmt.Println("Connected!")
+	return db
+}
+
 func New(stack *node.Node) error {
-	em := NewEmitterMysql("root", "test1234!", "localhost:3306", "token_history")
+	db := NewDatabase("root", "test1234!", "localhost:3306", "token_history")
+
+	em := NewEmitterMysql(db, "token_history")
 
 	srv := &TokenHistory{
 		chainEventCh:     make(chan blockchain.ChainEvent, 1),
 		chainEventChStop: make(chan struct{}),
+		database:         db,
 		emitter:          em,
 	}
 
@@ -35,51 +66,59 @@ type TokenHistory struct {
 	chainEventChStop chan struct{}
 	chainSub         event.Subscription
 	emitter          *EmitterMysql
+	database         *sql.DB
 }
 
-func (b *TokenHistory) Protocols() []p2p.Protocol {
+func (th *TokenHistory) Protocols() []p2p.Protocol {
 	return nil
 }
 
-func (b *TokenHistory) APIs() []rpc.API {
+func (th *TokenHistory) APIs() []rpc.API {
+	return []rpc.API{
+		{
+			Namespace: "tokenhistory",
+			Version:   "1.0",
+			Service:   NewPublicTokenHistoryAPI(th),
+			Public:    true,
+		},
+	}
+}
+
+func (th *TokenHistory) Start(server p2p.Server) error {
+	go th.handleEvent()
+	th.chainSub = th.blockChain.SubscribeChainEvent(th.chainEventCh)
 	return nil
 }
 
-func (b *TokenHistory) Start(server p2p.Server) error {
-	go b.handleEvent()
-	b.chainSub = b.blockChain.SubscribeChainEvent(b.chainEventCh)
+func (th *TokenHistory) Stop() error {
+	th.chainSub.Unsubscribe()
+	close(th.chainEventChStop)
 	return nil
 }
 
-func (b *TokenHistory) Stop() error {
-	b.chainSub.Unsubscribe()
-	close(b.chainEventChStop)
+func (th *TokenHistory) Components() []interface{} {
 	return nil
 }
 
-func (b *TokenHistory) Components() []interface{} {
-	return nil
-}
-
-func (b *TokenHistory) SetComponents(components []interface{}) {
+func (th *TokenHistory) SetComponents(components []interface{}) {
 	for _, component := range components {
 		switch v := component.(type) {
 		case *blockchain.BlockChain:
-			b.blockChain = v
+			th.blockChain = v
 		}
 	}
 }
 
-func (b *TokenHistory) handleEvent() {
+func (th *TokenHistory) handleEvent() {
 	for {
 		select {
-		case <-b.chainEventChStop:
+		case <-th.chainEventChStop:
 			return
-		case ev := <-b.chainEventCh:
+		case ev := <-th.chainEventCh:
 			//logger.Info("got message", "message", ev.Block.Number(), "txCount", len(ev.Block.Transactions()))
 
 			klayTransferMap := parseBlock2(ev)
-			stateDB, err := b.blockChain.StateAt(ev.Block.Root())
+			stateDB, err := th.blockChain.StateAt(ev.Block.Root())
 			if err != nil {
 				logger.Error("failed to get state", "error", err)
 				return
@@ -96,7 +135,7 @@ func (b *TokenHistory) handleEvent() {
 				}
 			}
 
-			b.emitter.EmitKlayTransfers(klayTransferMap)
+			th.emitter.EmitKlayTransfers(klayTransferMap)
 
 			//tokenTransactions := parseBlock(ev)
 			//for _, t := range tokenTransactions {
